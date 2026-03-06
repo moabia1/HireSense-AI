@@ -97,6 +97,12 @@ async function loginController(req, res) {
 }
 
 
+
+/**
+ * @name logoutController
+ * @description Logout a user, expects a valid JWT token in the request header, adds the token to the blacklist
+ * @access Private
+ */
 async function logoutController(req,res) {
   const token = req.cookies.token
   if (!token) {
@@ -114,8 +120,31 @@ async function logoutController(req,res) {
   })
 }
 
+
+
+/**
+ * @name getMeController
+ * @description Get the current logged-in user's information
+ * @access Private
+ */
+async function getMeController(req, res) {
+  const user = await userModel.findById(req.user.id)
+
+  res.status(200).json({
+    message: "User information retrieved successfully",
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email
+    } 
+  })
+}
+
+
+
 module.exports = {
   registerController,
   loginController,
-  logoutController
+  logoutController,
+  getMeController
 }
