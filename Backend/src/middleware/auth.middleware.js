@@ -10,7 +10,7 @@ async function authUser(req, res, next) {
     })
   }
 
-  const tokenInBlacklist = tokenBlacklistModel.findOne({token})
+  const tokenInBlacklist = await tokenBlacklistModel.findOne({token})
 
   if(tokenInBlacklist) {
     return res.status(401).json({
