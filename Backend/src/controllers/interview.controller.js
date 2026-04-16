@@ -68,5 +68,6 @@ async function getAllReports(req, res) {
 
 module.exports = {
   generateReport,
-  getReportById
+  getReportById,
+  getAllReports
 };

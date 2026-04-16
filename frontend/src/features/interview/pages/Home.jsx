@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import "../styles/home.scss";
+import { useInterview } from "../hooks/useInterview";
 
 const Home = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -7,6 +8,9 @@ const Home = () => {
   const [resume, setResume] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileRef = useRef(null);
+
+  const { loading, generateReport } = useInterview()
+  
 
   const onFileChange = (e) => {
     const f = e.target.files && e.target.files[0];
@@ -34,14 +38,9 @@ const Home = () => {
 
   const canGenerate = resume || selfDescription.trim().length > 0;
 
-  const generateStrategy = useCallback(() => {
+  const generateStrategy = useCallback(async () => {
     if (!canGenerate) return;
-    // Placeholder - integrate with API/service
-    console.log("Generating strategy...", {
-      jobDescription,
-      resume,
-      selfDescription,
-    });
+    await generateReport({ jobDescription, selfDescription, resume });
   }, [canGenerate, jobDescription, resume, selfDescription]);
 
   return (
@@ -183,7 +182,10 @@ const Home = () => {
           <span className="cta__info">
             AI-Powered Strategy Generation • Approx 30s
           </span>
-          <button className="btn--primary">
+          <button
+            className="btn--primary"
+            onClick={generateStrategy}
+            disabled={!canGenerate || loading}>
             Generate My Interview Strategy
           </button>
         </div>
