@@ -110,7 +110,8 @@ const interviewReportSchema = z.object({
     )
     .describe(
       "A day-wise preparation plan for the candidate to follow in order to prepare for the interview",
-    ),
+  ),
+  title: z.string().describe("The title of the interview report, usually the job title"),
 });
 
 
@@ -156,7 +157,7 @@ Job Description: ${jobDescription}
     },
   });
 
-  console.log(response.text)
+  return response.text;
 }
 
 module.exports = generateInterviewReport;

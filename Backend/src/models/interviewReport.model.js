@@ -60,7 +60,7 @@ const skillGapSchema = new mongoose.Schema(
 const preprationPlanSchema = new mongoose.Schema(
   {
     day: {
-      type: Number,
+      type: String,
       required: [true, "Day is required"],
     },
     focus: {
@@ -87,11 +87,26 @@ const interviewReportSchema = new mongoose.Schema({
   },
   matchScore: {
     type: Number,
+    min: 0,
+    max: 100,
   },
   technialQuestions: [technicalQuestionSchema],
   behavioralQuestions: [behavioralQuestionSchema],
   skillGaps: [skillGapSchema],
   preparationPlan: [preprationPlanSchema],
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
+  title: {
+    type: String,
+    required: [true, "Title is required"],
+  }
 }, {
   timestamps: true,
 });
+
+
+const interviewReportModel = mongoose.model("interviewReport", interviewReportSchema);
+
+module.exports = interviewReportModel;

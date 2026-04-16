@@ -1,5 +1,7 @@
 const express = require("express");
 const { authUser } = require("../middleware/auth.middleware"); 
+const { generateReport } = require("../controllers/interview.controller");
+const upload = require( "../middleware/storage");
 
 
 
@@ -11,6 +13,14 @@ const interviewRouter = express.Router();
  * @description This route generates an interview report for a candidate based on their resume, self-description, and the job description.
  * @access Private (only authenticated users can access this route)
  */
+interviewRouter.post("/", authUser, upload.single("resume"), generateReport)
 
+
+/**
+ * @route GET /api/interview/report/:interviewId
+ * @description This route retrieves the details of a specific interview report based on the provided interview ID.
+ * @access Private (only authenticated users can access this route)
+ */
+interviewRouter.get("/report/:interviewId", authUser, getReportById)
 
 module.exports = interviewRouter;
