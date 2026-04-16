@@ -1,12 +1,14 @@
 import React, { useState, useRef, useCallback } from "react";
 import "../styles/home.scss";
 import { useInterview } from "../hooks/useInterview";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
   const [resume, setResume] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const navigate = useNavigate();
   const fileRef = useRef(null);
 
   const { loading, generateReport } = useInterview()
@@ -40,7 +42,8 @@ const Home = () => {
 
   const generateStrategy = useCallback(async () => {
     if (!canGenerate) return;
-    await generateReport({ jobDescription, selfDescription, resume });
+    const data = await generateReport({ jobDescription, selfDescription, resume });
+    navigate(`/interview/report/${data._id}`);
   }, [canGenerate, jobDescription, resume, selfDescription]);
 
   return (
