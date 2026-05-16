@@ -1,6 +1,7 @@
 const { GoogleGenAI } = require("@google/genai");
 const z = require("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
+const puppet = require("puppeteer");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY,
@@ -133,6 +134,7 @@ You are an AI Interview Assistant.
 Generate a structured interview report STRICTLY in JSON format.
 
 Follow this schema exactly:
+- title (string)
 - matchScore (0-100 number)
 - jobDescription (string)
 - technicalQuestions (array of objects with question, intention, answer)
@@ -160,4 +162,70 @@ Job Description: ${jobDescription}
   return response.text;
 }
 
-module.exports = generateInterviewReport;
+async function generatePdfFromHtml(htmlContent) {
+  const browser = await puppet.launch();
+  const page = await browser.newPage();
+  await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+  const pdfBuffer = await page.pdf({ format: "A4" , margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }});
+  await browser.close();
+  return pdfBuffer;
+}
+
+async function generateResumePdfForCandidate({ resumeText, selfDescription, jobDescription }) {
+  const resumePdfSchema = z.object({
+    html: z.string().describe("The HTML content of the resume which can be converted to PDF using libraries like puppeteer"),
+  })
+
+  const prompt = `You are an expert resume writer and ATS optimization specialist.
+
+Generate a PROFESSIONAL, ATS-FRIENDLY, ONE-PAGE resume in clean HTML format.
+
+Candidate Data:
+Self Description: ${selfDescription}
+Job Description: ${jobDescription}  
+Resume Text: ${resumeText}
+
+HTML Requirements:
+- Use inline CSS only (puppeteer compatible)
+- Clean, minimal design with good typography
+- Single page layout — everything must fit in A4 size
+- Font: Arial or system-safe fonts only
+- Color: mostly black/dark gray, one accent color max
+
+Resume Structure (in this order):
+1. Header — Name, Email, Phone, LinkedIn, GitHub (single line)
+2. Professional Summary — 2-3 lines tailored to the JD with keywords
+3. Technical Skills — grouped by category, only JD-relevant skills
+4. Experience — reverse chronological, max 3 jobs, 3-4 bullets each
+5. Projects — max 2-3 most relevant to JD, with tech stack
+6. Education — degree, institution, year, GPA if good
+7. Certifications — only if relevant
+
+Writing Rules:
+- Every bullet starts with strong action verb (Built, Engineered, Optimized, Reduced)
+- Quantify achievements wherever possible (e.g. "Reduced load time by 40%")
+- Mirror exact keywords from Job Description for ATS scoring
+- Remove anything not relevant to this specific JD
+- No tables, no columns (ATS parsers struggle with them)
+- No images or icons
+
+Return ONLY a JSON object: { "html": "<html content here>" }
+DO NOT return anything outside the JSON.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: zodToJsonSchema(resumePdfSchema)
+    }
+  })
+
+  const jsonContent = JSON.parse(response.text);
+
+  const pdfBuffer = await generatePdfFromHtml(jsonContent.html);
+
+  return pdfBuffer;
+}
+
+module.exports = {generateInterviewReport, generateResumePdfForCandidate};

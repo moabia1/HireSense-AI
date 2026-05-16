@@ -1,18 +1,45 @@
-import React, { useState, useRef, useCallback } from "react";
-import "../styles/home.scss";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Upload, Sparkles, FileText, ArrowRight, Zap, CheckCircle } from "lucide-react";
+import styles from "./Home.module.scss";
 import { useInterview } from "../hooks/useInterview";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../../../components/Navbar/Navbar";
 
 const Home = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
   const [resume, setResume] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
   const fileRef = useRef(null);
+  const containerRef = useRef(null);
 
-  const { loading, generateReport } = useInterview()
+  const { loading, generateReport, reports,getAllReports } = useInterview();
   
+  useEffect(() => {
+    getAllReports();
+  }, [])
+
+  console.log(reports)
+
+
+  // Track mouse for glow effect
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   const onFileChange = (e) => {
     const f = e.target.files && e.target.files[0];
@@ -39,161 +66,354 @@ const Home = () => {
   const removeResume = () => setResume(null);
 
   const canGenerate = resume || selfDescription.trim().length > 0;
+  const jobDescLength = jobDescription.length;
+  const selfDescLength = selfDescription.length;
 
   const generateStrategy = useCallback(async () => {
     if (!canGenerate) return;
-    const data = await generateReport({ jobDescription, selfDescription, resume });
+    const data = await generateReport({
+      jobDescription,
+      selfDescription,
+      resume,
+    });
     navigate(`/interview/report/${data._id}`);
-  }, [canGenerate, jobDescription, resume, selfDescription]);
+  }, [
+    canGenerate,
+    jobDescription,
+    resume,
+    selfDescription,
+    generateReport,
+    navigate,
+  ]);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
+  const blobVariants = {
+    animate: {
+      x: [0, 30, -30, 0],
+      y: [0, -30, 30, 0],
+      transition: {
+        duration: 8,
+        repeat: Infinity,
+        ease: "easeInOut",
+      },
+    },
+  };
 
   return (
-    <main className="home">
-      <div className="bg-blobs" aria-hidden>
-        <span className="blob blob--1" />
-        <span className="blob blob--2" />
-        <span className="blob blob--3" />
+    <motion.main
+      className={styles.home}
+      ref={containerRef}
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Navbar />
+      {/* Animated Background Elements */}
+      <div className={styles.background} aria-hidden="true">
+        <div
+          className={styles.gradientOrb}
+          style={{
+            "--mouse-x": `${mousePosition.x}px`,
+            "--mouse-y": `${mousePosition.y}px`,
+          }}
+        />
+
+        <motion.div
+          className={`${styles.blob} ${styles["blob--1"]}`}
+          variants={blobVariants}
+          animate="animate"
+        />
+        <motion.div
+          className={`${styles.blob} ${styles["blob--2"]}`}
+          variants={blobVariants}
+          animate="animate"
+          transition={{ delay: 2 }}
+        />
+        <motion.div
+          className={`${styles.blob} ${styles["blob--3"]}`}
+          variants={blobVariants}
+          animate="animate"
+          transition={{ delay: 4 }}
+        />
+
+        {/* Grid overlay */}
+        <div className={styles.gridOverlay} />
       </div>
 
-      <section className="home__hero">
-        <h1 className="hero__title animate-fadeUp">
-          Create Your Custom{" "}
-          <span className="gradient-text">Interview Plan</span>
-        </h1>
-        <p className="hero__subtitle animate-fadeUp">
-          Let our AI analyze your profile and build a winning strategy
+      {/* Hero Section */}
+      <motion.section className={styles.hero} variants={itemVariants}>
+        <h2 className={styles.heroTitle}>
+          Create Your
+          <br />
+          <span className={styles.gradientText}> Personalized </span> <br/>
+          Interview Strategy
+        </h2>
+        <p className={styles.heroSubtitle}>
+          Upload your resume, paste a job description, and let AI build a
+          complete interview roadmap tailored to your skills.
         </p>
-      </section>
+      </motion.section>
 
-      <section className="home__card card--glass animate-fadeUp">
-        <div className="card__inner">
-          <div className="card__left">
-            <div className="field">
-              <div className="field__header">
-                <h3 className="field__title">Target Job Description</h3>
-                <span className="tag">REQUIRED</span>
+      {/* Main Card */}
+      <motion.section
+        className={styles.mainCard}
+        variants={itemVariants}
+        whileHover={{ y: -4 }}
+      >
+        {/* Loading state */}
+        {loading && (
+          <div className={styles.loadingOverlay}>
+            <div className={styles.spinner} />
+            <p>Generating your interview strategy...</p>
+          </div>
+        )}
+
+        <div className={styles.cardContent}>
+          {/* Left Column - Job Description */}
+          <div className={styles.column} style={{ "--column-flex": "1" }}>
+            <div className={styles.fieldGroup}>
+              <div className={styles.fieldHeader}>
+                <h3 className={styles.fieldTitle}>Target Job Description</h3>
+                <span className={styles.required}>REQUIRED</span>
               </div>
+
               <textarea
-                className="input textarea"
+                className={styles.textarea}
                 maxLength={5000}
-                placeholder={`Example: Senior Frontend Engineer at a fast-growing SaaS startup working with React, performance, and design systems.`}
+                placeholder="Senior Frontend Engineer at a fast-growing SaaS startup working with React, TypeScript, performance optimization, and design systems."
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
+                spellCheck="true"
               />
-              <div className="meta">
-                <span className="meta__count">
-                  {jobDescription.length}/5000
-                </span>
+
+              <div className={styles.charCounter}>
+                <span>{jobDescLength}</span>
+                <span className={styles.counterMax}>/ 5000</span>
               </div>
+
+              {/* AI Tip Card */}
+              <motion.div className={styles.tipCard} whileHover={{ x: 4 }}>
+                <Sparkles size={16} />
+                <span>
+                  <strong>Pro tip:</strong> Include required skills,
+                  responsibilities, and tech stack for better analysis.
+                </span>
+              </motion.div>
             </div>
           </div>
 
-          <div className="card__right">
-            <div
-              className={`upload ${dragActive ? "upload--active" : ""}`}
+          {/* Divider */}
+          <div className={styles.divider} />
+
+          {/* Right Column - Resume & Self Description */}
+          <div className={styles.column} style={{ "--column-flex": "1" }}>
+            {/* Upload Section */}
+            <motion.div
+              className={`${styles.uploadZone} ${
+                dragActive ? styles["uploadZone--active"] : ""
+              }`}
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
-              onClick={() => fileRef.current && fileRef.current.click()}
-              role="button"
-              tabIndex={0}
+              onClick={() => fileRef.current?.click()}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <input
                 ref={fileRef}
                 type="file"
                 accept=".pdf"
-                className="input-file"
                 onChange={onFileChange}
                 hidden
+                aria-label="Upload resume"
               />
 
               {!resume ? (
-                <div className="upload__inner">
-                  <svg
-                    className="upload__icon"
-                    width="36"
-                    height="36"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                <div className={styles.uploadContent}>
+                  <motion.div
+                    className={styles.uploadIcon}
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   >
-                    <path
-                      d="M12 3v10"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M8 7l4-4 4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <rect
-                      x="3"
-                      y="13"
-                      width="18"
-                      height="8"
-                      rx="2"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                  <div className="upload__label">Upload Resume</div>
-                  <small className="upload__hint">Best Results • PDF</small>
+                    <Upload size={32} />
+                  </motion.div>
+                  <div className={styles.uploadLabel}>Upload Resume</div>
+                  <div className={styles.uploadHint}>PDF • Up to 10MB</div>
                 </div>
               ) : (
-                <div className="upload__file">
-                  <div className="file__meta">
-                    <strong>{resume.name}</strong>
-                    <button
-                      className="file__remove"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeResume();
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
+                <motion.div
+                  className={styles.fileSelected}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <CheckCircle size={24} className={styles.successIcon} />
+                  <div className={styles.fileName}>{resume.name}</div>
+                  <button
+                    className={styles.removeBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeResume();
+                    }}
+                    aria-label="Remove resume"
+                  >
+                    Remove
+                  </button>
+                </motion.div>
               )}
+            </motion.div>
+
+            {/* OR Divider */}
+            <div className={styles.orDivider}>
+              <span>OR</span>
             </div>
 
-            <div className="divider">OR</div>
+            {/* Self Description */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldTitle}>
+                Your Professional Summary
+              </label>
 
-            <div className="field">
-              <label className="field__title">Your Profile</label>
               <textarea
-                className="input textarea"
-                placeholder="Short self-description about your experience, skills and goals (200-400 words)."
+                className={styles.textarea}
+                placeholder="Share your experience, key skills, achievements, and career goals. (200-400 words recommended)"
                 value={selfDescription}
                 onChange={(e) => setSelfDescription(e.target.value)}
-                rows={6}
+                spellCheck="true"
               />
+
+              <div className={styles.charCounter}>
+                <span>{selfDescLength}</span>
+                <span className={styles.counterMax}>words</span>
+              </div>
             </div>
 
-            <div className="info-box">
-              Either <strong>Resume</strong> or{" "}
-              <strong>Self Description</strong> is required
+            {/* Info Box */}
+            <div className={styles.infoBox}>
+              <FileText size={16} />
+              <span>
+                Upload a <strong>resume</strong> or provide your{" "}
+                <strong>professional summary</strong> for analysis.
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="card__cta">
-          <span className="cta__info">
-            AI-Powered Strategy Generation • Approx 30s
-          </span>
-          <button
-            className="btn--primary"
+        {/* Bottom Action Area */}
+        <div className={styles.ctaSection}>
+          <div className={styles.ctaInfo}>
+            <Zap size={14} />
+            <span>AI analyzes skills, gaps, confidence, and readiness</span>
+          </div>
+
+          <motion.button
+            className={`${styles.ctaButton} ${
+              !canGenerate || loading ? styles["ctaButton--disabled"] : ""
+            }`}
             onClick={generateStrategy}
-            disabled={!canGenerate || loading}>
-            Generate My Interview Strategy
-          </button>
+            disabled={!canGenerate || loading}
+            whileHover={canGenerate && !loading ? { scale: 1.05 } : {}}
+            whileTap={canGenerate && !loading ? { scale: 0.95 } : {}}
+          >
+            <span>Generate My Interview Plan</span>
+            {!loading && <ArrowRight size={18} />}
+            {loading && (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Zap size={18} />
+              </motion.div>
+            )}
+          </motion.button>
         </div>
-      </section>
-    </main>
+      </motion.section>
+
+      {/* Previous Reports */}
+      {reports && reports.length > 0 && (
+        <motion.section
+          className={styles.reportsSection}
+          variants={itemVariants}
+        >
+          <div className={styles.reportsSectionHeader}>
+            <h3 className={styles.reportsSectionTitle}>Previous Reports</h3>
+            <span className={styles.reportsCount}>
+              {reports.length} reports
+            </span>
+          </div>
+          <div className={styles.reportsGrid}>
+            {reports.map((report) => (
+              <motion.div
+                key={report._id}
+                className={styles.reportCard}
+                whileHover={{ y: -4 }}
+                onClick={() => navigate(`/interview/report/${report._id}`)}
+              >
+                <div className={styles.reportCardTop}>
+                  <div className={styles.reportCardScore}>
+                    <span className={styles.scoreNumber}>
+                      {report.matchScore}
+                    </span>
+                    <span className={styles.scorePercent}>%</span>
+                  </div>
+                  <span
+                    className={`${styles.scoreTag} ${
+                      report.matchScore >= 75
+                        ? styles["scoreTag--green"]
+                        : report.matchScore >= 50
+                          ? styles["scoreTag--yellow"]
+                          : styles["scoreTag--red"]
+                    }`}
+                  >
+                    {report.matchScore >= 75
+                      ? "Strong"
+                      : report.matchScore >= 50
+                        ? "Moderate"
+                        : "Weak"}
+                  </span>
+                </div>
+                <p className={styles.reportCardTitle}>{report.title}</p>
+                <div className={styles.reportCardFooter}>
+                  <span className={styles.reportCardDate}>
+                    {new Date(report.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className={styles.reportCardArrow}>→</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Footer hint */}
+      <motion.div className={styles.footerHint} variants={itemVariants}>
+        Approx <strong>30 seconds</strong> to generate your complete interview
+        strategy
+      </motion.div>
+    </motion.main>
   );
 };
 

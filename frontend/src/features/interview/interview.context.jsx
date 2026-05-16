@@ -6,6 +6,7 @@ export const InterviewProvider = ({ children }) => {
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState(null)
   const [reports, setReports] = useState([])
+  console.log("InterviewProvider Rendered");
 
   return (
     <InterviewContext.Provider value={{ loading, setLoading, report, setReport, reports, setReports }}>

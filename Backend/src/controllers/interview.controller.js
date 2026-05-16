@@ -1,5 +1,5 @@
 const pdf = require("pdf-parse");
-const generateInterviewReport = require("../services/ai.services");
+const {generateInterviewReport,generateResumePdfForCandidate} = require("../services/ai.services");
 const interviewModel = require("../models/interviewReport.model");
 const interviewReportModel = require("../models/interviewReport.model");
 
@@ -36,11 +36,13 @@ async function generateReport(req, res) {
 }
 
 
-
+/**
+ * @description This function retrieves an interview report by its ID for the authenticated user.
+ */
 async function getReportById(req, res) {
   const { interviewId } = req.params;
   try {
-    const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user.id });
+    const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user._id });
 
     if (!interviewReport) {
       return res.status(404).json({ message: "Interview report not found" });
@@ -56,8 +58,12 @@ async function getReportById(req, res) {
   }
 }
 
+
+/**
+ * @description This function retrieves all interview reports for the authenticated user.
+ */
 async function getAllReports(req, res) {
-  const interviewReports = await interviewReportModel.find({ user: req.user.id }).sort({ createdAt: -1 }).select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps");
+  const interviewReports = await interviewReportModel.find({ user: req.user._id }).sort({ createdAt: -1 }).select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps");
 
   
   res.status(200).json({
@@ -66,8 +72,32 @@ async function getAllReports(req, res) {
   });
 }
 
+
+/**
+ * @description This function generates a PDF for a specific interview report.
+ */
+async function generateResumePdf(req, res) {
+  const { interviewId } = req.params;
+  
+  const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user._id });
+  
+  if (!interviewReport) {
+    return res.status(404).json({ message: "Interview report not found" });
+  }
+
+  const { resume, selfDescription, jobDescription } = interviewReport;
+  
+  const pdfBuffer = await generateResumePdfForCandidate({ resumeText: resume, selfDescription, jobDescription });
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename=resume_${interviewId}.pdf`,
+  });
+  res.send(pdfBuffer);
+} 
+
 module.exports = {
   generateReport,
   getReportById,
-  getAllReports
+  getAllReports,
+  generateResumePdf
 };

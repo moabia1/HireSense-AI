@@ -4,6 +4,7 @@ const {
   generateReport,
   getReportById,
   getAllReports,
+  generateResumePdf,
 } = require("../controllers/interview.controller");
 const upload = require("../middleware/storage");
 
@@ -29,5 +30,14 @@ interviewRouter.get("/report/:interviewId", authUser, getReportById);
  * @access Private (only authenticated users can access this route)
  */
 interviewRouter.get("/", authUser, getAllReports);
+
+
+/**
+ * @route GET /api/interview/report/:interviewId/pdf
+ * @description This route generates a PDF for a specific interview report based on the provided interview ID.
+ * @access Private (only authenticated users can access this route)
+ */
+interviewRouter.post("/report/:interviewId/pdf", authUser, generateResumePdf);
+
 
 module.exports = interviewRouter;

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { getInterviewReport, getInterviewReportById, getAllInterviewReports } from "../services/interview.api";
+import { getInterviewReport, getInterviewReportById, getAllInterviewReports, generateInterviewReportPdf } from "../services/interview.api";
 import { InterviewContext } from "../interview.context";
 
 
@@ -31,6 +31,7 @@ export const useInterview = () => {
       setReport(response.interviewReport);
     } catch (error) {
       console.log("Error fetching interview report by ID:", error);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -51,12 +52,33 @@ export const useInterview = () => {
     return response.interviewReports;
   }
 
+  const generateReportPdf = async (interviewId) => {
+    setLoading(true);
+    let response = null;
+    try {
+      response = await generateInterviewReportPdf(interviewId);
+      const url = window.URL.createObjectURL(new Blob([response], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `interview_report_${interviewId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      console.error("Error generating interview report PDF:", error);
+    } finally {
+      setLoading(false);
+    }
+    return response;
+  }
+
+
   return {
     loading,
     report,
     reports,
     generateReport,
     getReportById,
-    getAllReports
+    getAllReports,
+    generateReportPdf
   }
 }
