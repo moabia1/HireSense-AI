@@ -39,7 +39,12 @@ async function registerController(req, res) {
     username: user.username
   }, process.env.JWT_SECRET, { expiresIn: "1d" })
   
-  res.cookie("token", token)
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true, // ← HTTPS required
+    sameSite: "None", // ← cross-domain ke liye
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
   
   return res.status(201).json({
     message: "User registered successfully",
@@ -84,8 +89,13 @@ async function loginController(req, res) {
     {expiresIn:"1d"}
   )
 
-  res.cookie("token", token)
-  
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true, // ← HTTPS required
+    sameSite: "None", // ← cross-domain ke liye
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
   return res.status(201).json({
     message: "User login successfully",
     user: {
